@@ -1,4 +1,4 @@
-﻿using UnityEngine.Purchasing;
+using UnityEngine.Purchasing;
 using UnityEngine.Purchasing.Extension;
 
 namespace Achieve.BreezeIAP
@@ -12,38 +12,21 @@ namespace Achieve.BreezeIAP
             BreezeIAP.initializeCompletionSource.TrySetResult(InitializeResult.Success());
         }
 
-        public void OnInitializeFailed(InitializationFailureReason error)
-        {
-            BreezeIAP.initializeCompletionSource.TrySetResult(InitializeResult.Error(error.ToString()));
-        }
-
         public void OnInitializeFailed(InitializationFailureReason error, string message)
         {
-            BreezeIAP.initializeCompletionSource.TrySetResult(InitializeResult.Error(error.ToString()));
+            BreezeIAP.initializeCompletionSource.TrySetResult(InitializeResult.Error($"{error}: {message}"));
         }
 
         public void OnPurchaseFailed(Product product, PurchaseFailureDescription failureDescription)
         {
             PurchaseResult purchaseResult = new PurchaseResult
             {
-                Type = PurchaseType.Purchase,
+                Type = PurchaseType.Error,
                 Product = product,
-                ErrorMessage = failureDescription.reason.ToString()
+                ErrorMessage = $"{failureDescription.reason}: {failureDescription.message}"
             };
 
-            BreezeIAP.purchaseCompletionSource.TrySetResult(purchaseResult);
-        }
-
-        public void OnPurchaseFailed(Product product, PurchaseFailureReason failureReason)
-        {
-            PurchaseResult purchaseResult = new PurchaseResult
-            {
-                Type = PurchaseType.Purchase,
-                Product = product,
-                ErrorMessage = failureReason.ToString()
-            };
-
-            BreezeIAP.purchaseCompletionSource.TrySetResult(purchaseResult);
+            BreezeIAP.purchaseCompletionSource?.TrySetResult(purchaseResult);
         }
 
         public PurchaseProcessingResult ProcessPurchase(PurchaseEventArgs purchaseEvent)
@@ -58,7 +41,7 @@ namespace Achieve.BreezeIAP
             };
 
             BreezeIAP.AddPendingList(purchaseResult);
-            BreezeIAP.purchaseCompletionSource.TrySetResult(purchaseResult);
+            BreezeIAP.purchaseCompletionSource?.TrySetResult(purchaseResult);
 
             return PurchaseProcessingResult.Pending;
         }

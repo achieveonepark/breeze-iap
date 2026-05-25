@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine.Purchasing;
 using System.Threading.Tasks;
 using System;
@@ -32,6 +32,7 @@ namespace Achieve.BreezeIAP
 
             _receiver = new BreezeIAPReceiver();
             pendingList = new List<PurchaseResult>();
+            initializeCompletionSource = new TaskCompletionSource<InitializeResult>();
 
             var builder = ConfigurationBuilder.Instance(StandardPurchasingModule.Instance());
             for (int i = 0; i < dtos.Length; i++)
@@ -43,11 +44,10 @@ namespace Achieve.BreezeIAP
             isCheckingPendingList = true;
             UnityPurchasing.Initialize(_receiver, builder);
 
-            // 시간 내에 흐르지 못하면 false 처리
             var result = await initializeCompletionSource.Task.Timeout(TimeSpan.FromSeconds(10));
             _isInitialized = result.IsInitialized;
 
-            if (_isInitialized is false)
+            if (!_isInitialized)
             {
                 BreezeIAPLog.Warning("Initialize failed: No response after Initialize");
                 return;
@@ -63,50 +63,15 @@ namespace Achieve.BreezeIAP
         /// <param name="isDebug">Debug.Log를 찍을 것인지?</param>
         public static async Task InitializeAsync(List<InitializeDto> dtos, bool isDebug = false)
         {
-            if (_isInitialized) return;
-            BreezeIAPLog.CurrentLogLevel = isDebug ? BreezeIAPLog.LogLevel.Debug : BreezeIAPLog.LogLevel.Info;
-
-            var dtoArray = dtos.ToArray();
-
-            dtos.Add(new InitializeDto
-            {
-                ProductId = "Consumable",
-                ProductType = ProductType.Consumable
-            });
-
-            _receiver = new BreezeIAPReceiver();
-            pendingList = new List<PurchaseResult>();
-
-            var builder = ConfigurationBuilder.Instance(StandardPurchasingModule.Instance());
-            for (int i = 0; i < dtoArray.Length; i++)
-            {
-                var dto = dtoArray[i];
-                builder.AddProduct(dto.ProductId, dto.ProductType);
-            }
-
-            isCheckingPendingList = true;
-            UnityPurchasing.Initialize(_receiver, builder);
-
-            // 시간 내에 흐르지 못하면 false 처리
-            var result = await initializeCompletionSource.Task.Timeout(TimeSpan.FromSeconds(10));
-            _isInitialized = result.IsInitialized;
-
-            if (_isInitialized is false)
-            {
-                BreezeIAPLog.Warning("Initialize failed: No response after Initialize");
-                return;
-            }
-
-            BreezeIAPLog.Info("Initialize Successful!");
+            await InitializeAsync(dtos.ToArray(), isDebug);
         }
 
         /// <summary>
         /// Initialize 후에 해당 메소드를 꼭 호출하여 Pending 상품에 대한 처리를 진행합니다.
         /// </summary>
-        /// <returns></returns>
         public static List<PurchaseResult> GetPendingList()
         {
-            if (_isInitialized)
+            if (!_isInitialized)
             {
                 BreezeIAPLog.Warning($"It is not initialized. Call method : {nameof(GetPendingList)}");
                 return null;
@@ -119,25 +84,21 @@ namespace Achieve.BreezeIAP
 
         /// <summary>
         /// 스토어에 등록 된 ProductId를 입력하여 상품 구매를 시도합니다.
-        /// 결제 결과는 AchievePurchaseReceiver에 등록된 event로 호출됩니다.
-        /// 성공 : onPurchaseFailed
-        /// 실패 : onPurchaseSuccess
         /// </summary>
         /// <param name="productId"></param>
         public static async Task<PurchaseResult> PurchaseAsync(string productId)
         {
-            if (_isInitialized)
+            if (!_isInitialized)
             {
                 BreezeIAPLog.Warning($"It is not initialized. Call method : {nameof(PurchaseAsync)}");
-                var result = PurchaseResult.Error("초기화 실패");
+                return PurchaseResult.Error("초기화 실패");
             }
-            
+
             purchaseCompletionSource = new TaskCompletionSource<PurchaseResult>();
-            
+
             BreezeIAPLog.Info($"Attempt to pay for product [{productId}]...");
             controller.InitiatePurchase(productId);
 
-            // 60초 동안 설정되지 않으면... fail.
             var product = await purchaseCompletionSource.Task.Timeout(TimeSpan.FromSeconds(60));
             BreezeIAPLog.Info($"The payment for item [{productId}] was successful!");
 
@@ -147,24 +108,17 @@ namespace Achieve.BreezeIAP
         }
 
         /// <summary>
-        /// Purchase로 결제 시도 후 onPurchaseSuccess로 event가 호출되었을 때
-        /// 올바르게 구매가 진행되었다면 상품 구매를 확정합니다.
-        /// 이 메소드를 호출한 후에 아이템을 지급해주세요.
+        /// 구매를 확정합니다. 아이템 지급 후 반드시 호출해주세요.
         /// </summary>
-        /// <param name="PurchaseResult"></param>
         public static void Confirm(PurchaseResult product)
         {
             controller.ConfirmPendingPurchase(product.Product);
             BreezeIAPLog.Info($"I confirmed product [{product.Product.definition.id}].");
         }
-        
 
         /// <summary>
-        /// Purchase로 결제 시도 후 onPurchaseSuccess로 event가 호출되었을 때
-        /// 올바르게 구매가 진행되었다면 상품 구매를 확정합니다.
-        /// 이 메소드를 호출한 후에 아이템을 지급해주세요.
+        /// 구매를 확정합니다. 아이템 지급 후 반드시 호출해주세요.
         /// </summary>
-        /// <param name="PurchaseResult"></param>
         public static void Confirm(Product product)
         {
             controller.ConfirmPendingPurchase(product);
@@ -172,12 +126,11 @@ namespace Achieve.BreezeIAP
         }
 
         /// <summary>
-        /// 구매한 상품을 복원합니다.
-        /// 해당 메소드는 소모성 상품을 제외한 상품들을 불러옵니다.
+        /// 구매한 상품을 복원합니다. (Apple 전용, 소모성 상품 제외)
         /// </summary>
         public static void Restore()
         {
-            if(Application.platform == RuntimePlatform.IPhonePlayer)
+            if (Application.platform == RuntimePlatform.IPhonePlayer)
             {
                 var apple = extensionProvider.GetExtension<IAppleExtensions>();
 
@@ -190,7 +143,7 @@ namespace Achieve.BreezeIAP
 
         internal static void AddPendingList(PurchaseResult product)
         {
-            if(isCheckingPendingList)
+            if (isCheckingPendingList)
             {
                 pendingList.Add(product);
             }
