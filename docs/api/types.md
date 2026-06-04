@@ -1,8 +1,8 @@
-# Types
+# 타입 정의
 
 ## InitializeDto
 
-Describes a single product to register with the store.
+스토어에 등록할 상품 하나를 정의하는 구조체입니다.
 
 ```csharp
 public readonly struct InitializeDto
@@ -12,16 +12,24 @@ public readonly struct InitializeDto
 }
 ```
 
-| Field | Type | Description |
+| 필드 | 타입 | 설명 |
 |---|---|---|
-| `ProductId` | `string` | Must match the product ID in App Store Connect / Google Play Console exactly. |
-| `ProductType` | `ProductType` | `Consumable`, `NonConsumable`, or `Subscription` (from `UnityEngine.Purchasing`). |
+| `ProductId` | `string` | App Store Connect / Google Play Console에 등록된 상품 ID와 정확히 일치해야 합니다. |
+| `ProductType` | `ProductType` | `Consumable`(소모성), `NonConsumable`(비소모성), `Subscription`(구독) — `UnityEngine.Purchasing`에서 제공합니다. |
+
+### 예시
+
+```csharp
+new InitializeDto { ProductId = "gold_100",  ProductType = ProductType.Consumable }
+new InitializeDto { ProductId = "no_ads",    ProductType = ProductType.NonConsumable }
+new InitializeDto { ProductId = "vip_month", ProductType = ProductType.Subscription }
+```
 
 ---
 
 ## PurchaseResult
 
-The result of a [`PurchaseAsync`](purchase.md) call or an item from [`GetPendingList`](pending.md).
+[`PurchaseAsync`](purchase.md) 반환값 또는 [`GetPendingList`](pending.md)의 항목입니다.
 
 ```csharp
 public readonly struct PurchaseResult
@@ -36,27 +44,59 @@ public readonly struct PurchaseResult
 }
 ```
 
-| Field | Type | Description |
+| 필드 | 타입 | 설명 |
 |---|---|---|
-| `Type` | `PurchaseType` | Indicates how the purchase arrived. |
-| `Product` | `Product` | The Unity IAP `Product` object. Use `Product.definition.id` to get the product ID. |
-| `Order` | `PendingOrder` | The Unity IAP v5 order. Pass it to [`Confirm`](confirm.md) to finalize the purchase. `null` for failed / deferred results. |
-| `ErrorMessage` | `string` | Non-empty when `IsSuccess` is `false`. |
-| `Receipt` | `string` | Receipt JSON, taken from `Order.Info.Receipt`. Useful for server-side validation. |
-| `TransactionId` | `string` | The store transaction ID, from `Order.Info.TransactionID`. |
-| `IsSuccess` | `bool` | `true` when the purchase completed without error. |
+| `Type` | [`PurchaseType`](#purchasetype) | 구매가 어떤 경로로 도달했는지를 나타냅니다. |
+| `Product` | `Product` | Unity IAP `Product` 객체. `Product.definition.id`로 상품 ID를 가져옵니다. |
+| `Order` | `PendingOrder` | Unity IAP v5 주문. [`Confirm`](confirm.md)에 전달하여 구매를 확정합니다. 실패/Deferred 결과에서는 `null`입니다. |
+| `ErrorMessage` | `string` | `IsSuccess`가 `false`일 때 실패 이유가 담겨 있습니다. |
+| `Receipt` | `string` | `Order.Info.Receipt`에서 가져온 영수증 JSON. 서버 검증에 사용합니다. |
+| `TransactionId` | `string` | `Order.Info.TransactionID`에서 가져온 스토어 트랜잭션 ID. |
+| `IsSuccess` | `bool` | `ErrorMessage`가 비어있으면 `true`. |
+
+### 자주 사용하는 패턴
+
+```csharp
+var result = await BreezeIAP.PurchaseAsync("gold_100");
+
+// 성공 여부 확인
+if (!result.IsSuccess)
+{
+    Debug.LogWarning(result.ErrorMessage);
+    return;
+}
+
+// 상품 ID 가져오기
+string productId = result.Product.definition.id;
+
+// 서버 검증용 데이터
+string receipt       = result.Receipt;
+string transactionId = result.TransactionId;
+```
 
 ---
 
 ## PurchaseType
 
+`PurchaseResult.Type`에 설정되는 열거형으로, 구매가 어떤 경로로 도달했는지를 나타냅니다.
+
 ```csharp
 public enum PurchaseType
 {
-    Purchase, // Normal purchase flow
-    Pending,  // Re-delivered from a previous session
-    Deferred, // Awaiting external approval (e.g. Ask to Buy)
-    Restore,  // Restored on iOS
-    Error     // Purchase failed
+    Purchase,  // 정상 구매 흐름
+    Pending,   // 이전 세션에서 재전달된 미확정 구매
+    Deferred,  // 외부 승인 대기 중 (예: Ask to Buy)
+    Restore,   // iOS 복원을 통해 도달
+    Error      // 구매 실패
 }
 ```
+
+| 값 | 설명 | Confirm 필요 |
+|---|---|---|
+| `Purchase` | 사용자가 직접 구매 완료 | ✅ |
+| `Pending` | 이전 세션의 미확정 구매 (`GetPendingList`에서 도달) | ✅ |
+| `Deferred` | Ask to Buy 등 외부 승인 대기 — 아직 결제되지 않음 | ❌ |
+| `Restore` | iOS 복원을 통해 도달 | ✅ |
+| `Error` | 구매 실패 | ❌ |
+
+`Deferred`와 `Error`는 `Order`가 `null`이므로 `Confirm`을 호출하지 않아야 합니다.

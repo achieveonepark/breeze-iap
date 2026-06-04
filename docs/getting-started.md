@@ -1,33 +1,33 @@
-# Getting Started
+# 시작하기
 
-## Requirements
+## 요구사항
 
-| Requirement | Version |
+| 항목 | 버전 |
 |---|---|
-| Unity | 2022.3 or later |
-| Unity In-App Purchasing | **5.3.0 or later** |
+| Unity | 2022.3 이상 |
+| Unity In-App Purchasing | **5.3.0 이상** |
 
-## Installation
+## 설치
 
-### Via Unity Package Manager (Git URL)
+### Unity Package Manager (Git URL)
 
-1. Open **Window → Package Manager**
-2. Click **+** → **Add package from git URL…**
-3. Enter:
+1. **Window → Package Manager** 열기
+2. 좌측 상단 **+** 버튼 → **Add package from git URL…** 클릭
+3. 아래 URL 입력 후 **Add**
 
 ```
 https://github.com/achieveonepark/breeze-iap.git
 ```
 
-Unity will automatically install the `com.unity.purchasing 5.3.0` dependency.
+`com.unity.purchasing 5.3.0` 의존성은 Unity Package Manager가 자동으로 설치합니다.
 
 ---
 
-## Basic Setup
+## 기본 설정
 
-### 1. Define your products
+### 1. 상품 목록 정의
 
-Create `InitializeDto` entries for every product registered in App Store / Google Play.
+App Store Connect / Google Play Console에 등록한 상품 ID와 타입을 `InitializeDto` 배열로 작성합니다.
 
 ```csharp
 var products = new[]
@@ -39,9 +39,11 @@ var products = new[]
 };
 ```
 
-### 2. Initialize on startup
+`ProductType`은 `UnityEngine.Purchasing` 네임스페이스에 있습니다.
 
-Call `InitializeAsync` once, typically in an early `MonoBehaviour.Start`:
+### 2. 초기화
+
+앱 실행 초기에 한 번 `InitializeAsync`를 호출합니다. 일반적으로 씬 진입 시 가장 먼저 실행되는 `MonoBehaviour.Start`에서 호출합니다.
 
 ```csharp
 private async void Start()
@@ -50,42 +52,49 @@ private async void Start()
 }
 ```
 
-`isDebug: true` enables verbose console logs. Remove it in production builds.
+`isDebug: true`를 전달하면 Unity 콘솔에 상세 로그가 출력됩니다. 출시 빌드에서는 생략하거나 `false`로 설정하세요.
 
-### 3. Process pending purchases
+> **초기화는 한 번만** — 이미 초기화된 상태에서 `InitializeAsync`를 다시 호출하면 조용히 무시됩니다.
 
-Always call `GetPendingList()` right after a successful init. This handles purchases that were completed in a previous session but not yet confirmed (e.g. the app crashed before `Confirm` was called).
+### 3. 미확정 구매 처리
+
+초기화 직후 반드시 `GetPendingList()`를 호출합니다. 이전 세션에서 구매는 완료됐지만 `Confirm`이 호출되기 전에 앱이 종료된 경우, 해당 구매가 여기에 담겨 있습니다.
 
 ```csharp
 var pending = BreezeIAP.GetPendingList();
-foreach (var item in pending)
+if (pending != null)
 {
-    GrantItem(item);
-    BreezeIAP.Confirm(item);
+    foreach (var item in pending)
+    {
+        GrantItem(item.Product.definition.id);  // 아이템 지급
+        BreezeIAP.Confirm(item);                // 구매 확정
+    }
 }
 ```
 
-### 4. Purchase
+`GetPendingList()`는 초기화 전에 호출하면 `null`을 반환합니다.
+
+### 4. 구매
 
 ```csharp
 var result = await BreezeIAP.PurchaseAsync("gold_100");
 
 if (result.IsSuccess)
 {
-    GrantItem(result);
+    GrantItem(result.Product.definition.id);
     BreezeIAP.Confirm(result);
 }
 else
 {
-    Debug.LogWarning($"Purchase failed: {result.ErrorMessage}");
+    Debug.LogWarning($"구매 실패: {result.ErrorMessage}");
 }
 ```
 
-> **Important:** Always call `Confirm` after granting the item. Not calling `Confirm` puts the product into the pending queue on the next launch.
+> **반드시 Confirm 호출** — 아이템 지급 후 `Confirm`을 호출하지 않으면 해당 구매가 다음 실행 시 `GetPendingList()`에 다시 나타납니다.
 
 ---
 
-## Full Example
+## 전체 예시
 
 ```csharp
 using UnityEngine;
@@ -104,12 +113,15 @@ public class ShopManager : MonoBehaviour
 
         await BreezeIAP.InitializeAsync(products);
 
-        // Recover any unconfirmed purchases from last session
+        // 이전 세션의 미확정 구매 복구
         var pending = BreezeIAP.GetPendingList();
-        foreach (var item in pending)
+        if (pending != null)
         {
-            Grant(item.Product.definition.id);
-            BreezeIAP.Confirm(item);
+            foreach (var item in pending)
+            {
+                Grant(item.Product.definition.id);
+                BreezeIAP.Confirm(item);
+            }
         }
     }
 
@@ -122,11 +134,49 @@ public class ShopManager : MonoBehaviour
             Grant(result.Product.definition.id);
             BreezeIAP.Confirm(result);
         }
+        else
+        {
+            ShowErrorPopup(result.ErrorMessage);
+        }
+    }
+
+    // iOS 복원 버튼 (App Store 정책상 비소모성 상품이 있으면 필수)
+    public void OnRestoreClicked()
+    {
+        BreezeIAP.Restore();
     }
 
     private void Grant(string productId)
     {
-        // Your item grant logic here
+        // 상품 ID에 따라 아이템 지급
+    }
+
+    private void ShowErrorPopup(string message)
+    {
+        // 오류 안내 UI 표시
     }
 }
 ```
+
+---
+
+## 에러 처리
+
+`PurchaseAsync`는 실패해도 예외를 던지지 않고 항상 `PurchaseResult`를 반환합니다. `IsSuccess`가 `false`인 경우 `ErrorMessage`에 실패 이유가 담겨 있습니다.
+
+| 상황 | IsSuccess | ErrorMessage |
+|---|---|---|
+| 정상 구매 완료 | `true` | `""` |
+| 초기화 전 호출 | `false` | `"초기화 실패"` |
+| 60초 타임아웃 | `false` | `"결제 시간 초과"` |
+| 스토어 구매 실패 | `false` | 스토어 오류 메시지 |
+
+초기화 단계에서 타임아웃이 발생하면 `InitializeAsync`는 반환되지만 내부 상태가 초기화되지 않은 채로 남습니다. 이후 `PurchaseAsync` 호출 시 즉시 오류 결과가 반환됩니다.
+
+---
+
+## 다음 단계
+
+- [API 레퍼런스 — InitializeAsync](./api/initialize)
+- [API 레퍼런스 — PurchaseAsync](./api/purchase)
+- [타입 정의](./api/types)

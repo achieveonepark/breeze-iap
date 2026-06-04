@@ -1,53 +1,68 @@
 # Confirm
 
-Finalizes a purchase with the store. Call this **after** you have safely granted the item to the player.
+구매를 스토어에 확정합니다. **아이템 지급 후 반드시 호출해야 합니다.**
 
-## Signatures
+## 시그니처
 
 ```csharp
 public static void Confirm(PurchaseResult result)
 public static void Confirm(PendingOrder order)
 ```
 
-## Parameters
+## 파라미터
 
-| Parameter | Type | Description |
+| 파라미터 | 타입 | 설명 |
 |---|---|---|
-| `result` | `PurchaseResult` | The result returned by `PurchaseAsync` or an item from `GetPendingList`. |
-| `order` | `PendingOrder` | A raw Unity IAP v5 `PendingOrder`, if you are managing orders at a lower level. |
+| `result` | `PurchaseResult` | `PurchaseAsync` 반환값 또는 `GetPendingList`의 항목 |
+| `order` | `PendingOrder` | Unity IAP v5의 `PendingOrder`를 직접 전달하는 저수준 오버로드 |
 
-## Behavior
+## 동작 방식
 
-Calls `StoreController.ConfirmPurchase(PendingOrder)` on the underlying Unity IAP v5 controller. Until this is called, the order stays pending and will re-appear on the next app launch via `GetPendingList`.
+내부적으로 Unity IAP v5의 `StoreController.ConfirmPurchase(PendingOrder)`를 호출합니다.
 
-> **Migration note (v5):** Unity IAP v5 confirms an **order**, not a `Product`. The old `Confirm(Product)` overload has been replaced by `Confirm(PendingOrder)`. When you pass a `PurchaseResult`, Breeze IAP uses its `Order` field internally.
+`Confirm`이 호출되기 전까지 구매는 **Pending 상태**로 유지됩니다. 앱을 다시 시작하면 Unity IAP가 해당 주문을 다시 전달하고, `GetPendingList()`에 나타납니다.
 
-## Example
+`PurchaseResult` 오버로드는 내부적으로 `result.Order`를 사용합니다. `result.Order`가 `null`인 경우(실패/Deferred 결과) 경고 로그만 출력하고 반환합니다.
 
-### Confirming after PurchaseAsync
+## 예시
+
+### PurchaseAsync 후 확정
 
 ```csharp
 var result = await BreezeIAP.PurchaseAsync("no_ads");
 
 if (result.IsSuccess)
 {
-    PlayerPrefs.SetInt("no_ads", 1); // grant first
-    BreezeIAP.Confirm(result);       // then confirm
+    PlayerPrefs.SetInt("no_ads", 1); // 아이템 지급 먼저
+    BreezeIAP.Confirm(result);       // 그 다음 확정
 }
 ```
 
-### Confirming from the pending list
+### GetPendingList 항목 확정
 
 ```csharp
 var pending = BreezeIAP.GetPendingList();
 foreach (var item in pending)
 {
-    Grant(item.Product.definition.id);
-    BreezeIAP.Confirm(item);
+    Grant(item.Product.definition.id); // 아이템 지급 먼저
+    BreezeIAP.Confirm(item);           // 그 다음 확정
 }
 ```
 
-## Related
+### 순서가 중요합니다
+
+```csharp
+// ✅ 올바른 순서
+Grant(result.Product.definition.id);
+BreezeIAP.Confirm(result);
+
+// ❌ 잘못된 순서 — Confirm 후 크래시 시 아이템이 지급되지 않은 채 구매 확정
+BreezeIAP.Confirm(result);
+Grant(result.Product.definition.id);
+```
+
+## 관련 항목
 
 - [`PurchaseAsync`](purchase.md)
 - [`GetPendingList`](pending.md)
+- [`PurchaseResult`](types.md#purchaseresult)
