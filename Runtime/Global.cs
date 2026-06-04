@@ -4,6 +4,7 @@ namespace Achieve.BreezeIAP
     {
         Purchase,
         Pending,
+        Deferred,
         Restore,
         Error
     }

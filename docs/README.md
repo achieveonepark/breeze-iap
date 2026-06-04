@@ -1,8 +1,8 @@
 # Breeze IAP
 
-**Breeze IAP** is a lightweight Unity wrapper around [Unity In-App Purchasing](https://docs.unity3d.com/Packages/com.unity.purchasing@5.0/manual/index.html) (v5.0.0+) that exposes a clean `async/await` API, so you can handle purchases without callbacks or boilerplate.
+**Breeze IAP** is a lightweight Unity wrapper around [Unity In-App Purchasing](https://docs.unity3d.com/Packages/com.unity.purchasing@5.3/manual/index.html) (v5.3.0+) that exposes a clean `async/await` API, so you can handle purchases without callbacks or boilerplate.
 
-> **Requires** Unity 2022.3+ · Unity IAP 5.0.0+
+> **Requires** Unity 2022.3+ · Unity IAP 5.3.0+
 
 ---
 

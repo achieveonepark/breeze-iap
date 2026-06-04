@@ -19,8 +19,8 @@ public static async Task InitializeAsync(List<InitializeDto> dtos, bool isDebug 
 ## Behavior
 
 - Calls are idempotent — subsequent calls while already initialized are silently ignored.
-- Has a **10-second timeout**. If the store doesn't respond within that window, initialization is considered failed and a warning is logged.
-- On success, registers all products with Unity IAP's `ConfigurationBuilder` and fires `UnityPurchasing.Initialize`.
+- Each step (connect / fetch products / fetch purchases) has a **10-second timeout**. If the store doesn't respond within that window, initialization is considered failed and a warning is logged.
+- Internally runs the Unity IAP v5 sequence: `UnityIAPServices.StoreController()` → `Connect()` → `FetchProducts(List<ProductDefinition>)` → `FetchPurchases()`. Each `InitializeDto` is mapped to a `ProductDefinition`.
 
 ## Example
 

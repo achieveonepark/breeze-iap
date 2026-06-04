@@ -2,7 +2,7 @@ import { defineConfig } from 'vitepress'
 
 export default defineConfig({
   title: 'Breeze IAP',
-  description: 'Async/await Unity IAP wrapper — Unity IAP 5.0.0+',
+  description: 'Async/await Unity IAP wrapper — Unity IAP 5.3.0+',
   base: '/',
 
   themeConfig: {

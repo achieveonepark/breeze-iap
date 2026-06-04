@@ -17,5 +17,18 @@ namespace Achieve.BreezeIAP
 
             return await task;
         }
+
+        public static async Task Timeout(this Task task, TimeSpan time)
+        {
+            Task delayTask = Task.Delay(time);
+            Task firstToFinish = await Task.WhenAny(task, delayTask);
+
+            if (firstToFinish == delayTask)
+            {
+                throw new TimeoutException("The operation has timed out.");
+            }
+
+            await task;
+        }
     }
 }

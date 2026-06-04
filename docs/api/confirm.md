@@ -5,20 +5,22 @@ Finalizes a purchase with the store. Call this **after** you have safely granted
 ## Signatures
 
 ```csharp
-public static void Confirm(PurchaseResult product)
-public static void Confirm(Product product)
+public static void Confirm(PurchaseResult result)
+public static void Confirm(PendingOrder order)
 ```
 
 ## Parameters
 
 | Parameter | Type | Description |
 |---|---|---|
-| `product` | `PurchaseResult` | The result returned by `PurchaseAsync` or an item from `GetPendingList`. |
-| `product` | `Product` | A raw Unity IAP `Product` object, if you are managing purchases at a lower level. |
+| `result` | `PurchaseResult` | The result returned by `PurchaseAsync` or an item from `GetPendingList`. |
+| `order` | `PendingOrder` | A raw Unity IAP v5 `PendingOrder`, if you are managing orders at a lower level. |
 
 ## Behavior
 
-Calls `IStoreController.ConfirmPendingPurchase` on the underlying Unity IAP controller. Until this is called, the purchase stays pending and will re-appear on the next app launch via `GetPendingList`.
+Calls `StoreController.ConfirmPurchase(PendingOrder)` on the underlying Unity IAP v5 controller. Until this is called, the order stays pending and will re-appear on the next app launch via `GetPendingList`.
+
+> **Migration note (v5):** Unity IAP v5 confirms an **order**, not a `Product`. The old `Confirm(Product)` overload has been replaced by `Confirm(PendingOrder)`. When you pass a `PurchaseResult`, Breeze IAP uses its `Order` field internally.
 
 ## Example
 

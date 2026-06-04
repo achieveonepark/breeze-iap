@@ -5,7 +5,7 @@
 | Requirement | Version |
 |---|---|
 | Unity | 2022.3 or later |
-| Unity In-App Purchasing | **5.0.0 or later** |
+| Unity In-App Purchasing | **5.3.0 or later** |
 
 ## Installation
 
@@ -19,7 +19,7 @@
 https://github.com/achieveonepark/breeze-iap.git
 ```
 
-Unity will automatically install the `com.unity.purchasing 5.0.0` dependency.
+Unity will automatically install the `com.unity.purchasing 5.3.0` dependency.
 
 ---
 

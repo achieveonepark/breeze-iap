@@ -10,9 +10,10 @@ public static void Restore()
 
 ## Behavior
 
-- Does nothing on non-iOS platforms (safe to call unconditionally).
-- Calls `IAppleExtensions.RestoreTransactions` via the Unity IAP extension provider.
-- Restored products re-enter `ProcessPurchase` — handle them the same way as a normal purchase.
+- Calls `StoreController.RestoreTransactions(callback)` directly. In Unity IAP v5 this method moved off the Apple extension provider onto the controller itself.
+- Primarily relevant on Apple platforms. On Google Play, owned products are restored automatically via `FetchPurchases` during `InitializeAsync`.
+- Restored purchases re-enter the `OnPurchasePending` flow and surface through [`GetPendingList`](pending.md) — handle them the same way as a normal purchase, then `Confirm`.
+- The success/failure result is logged via the Breeze IAP logger.
 
 ## Example
 

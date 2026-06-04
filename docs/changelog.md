@@ -1,5 +1,27 @@
 # Changelog
 
+## 3.0.0 — 2026-06-04
+
+### Breaking Changes
+
+- **Migrated to the Unity IAP v5 store API.** Requires `com.unity.purchasing` **5.3.0+**.
+- The legacy `IStoreController` / `IExtensionProvider` / `IStoreListener` model was replaced with `UnityIAPServices.StoreController()` and its event-based API (`OnPurchasePending`, `OnPurchaseConfirmed`, `OnProductsFetched`, `OnPurchasesFetched`, …).
+- Initialization now runs `Connect()` → `FetchProducts(List<ProductDefinition>)` → `FetchPurchases()` instead of `ConfigurationBuilder` + `UnityPurchasing.Initialize`.
+- Purchases are now confirmed against an **order**: `Confirm(Product)` is removed in favor of `Confirm(PendingOrder)`. `Confirm(PurchaseResult)` is unchanged.
+- Removed the internal `InitializeResult` type.
+
+### Added
+
+- `PurchaseResult.Order` (`PendingOrder`), plus convenience `Receipt` and `TransactionId` accessors sourced from `Order.Info`.
+- `PurchaseType.Deferred` for purchases awaiting external approval (e.g. Ask to Buy).
+- Non-generic `Task.Timeout` overload to support awaiting `StoreController.Connect()`.
+
+### Notes
+
+- The high-level API (`InitializeAsync`, `PurchaseAsync`, `Confirm(PurchaseResult)`, `GetPendingList`, `Restore`) is source-compatible with 2.0.0.
+
+---
+
 ## 2.0.0 — 2026-05-25
 
 ### Breaking Changes

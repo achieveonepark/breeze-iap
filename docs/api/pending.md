@@ -16,10 +16,10 @@ public static List<PurchaseResult> GetPendingList()
 
 A purchase enters the pending list when:
 
-1. The store reported a successful purchase (`ProcessPurchase` was called).
+1. The store reported a successful purchase (it arrived as a `PendingOrder`).
 2. The app crashed or was closed before `Confirm` was called.
 
-On the next launch, Unity IAP re-delivers the purchase during initialization. Breeze IAP captures it in the pending list so you can process it safely.
+On the next launch, Unity IAP v5 re-delivers the order through `FetchPurchases` (`OnPurchasesFetched`) during initialization. Breeze IAP captures any `PendingOrder` in the pending list so you can process it safely.
 
 ## Example
 
