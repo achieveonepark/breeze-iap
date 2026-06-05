@@ -1,0 +1,24 @@
+---
+slug: /
+sidebar_position: 1
+sidebar_label: 소개
+title: Breeze IAP
+---
+
+# Breeze IAP
+
+**Unity IAP를 async/await로.**
+Unity IAP v5.3.0+ 기반의 경량 결제 래퍼. 콜백 없이 한 줄의 `await`로 초기화·구매를 처리하세요.
+
+## 특징
+
+- ⚡ **단순한 async/await API** — `InitializeAsync` 한 번, `PurchaseAsync` 한 번. `IStoreListener` 구현이나 콜백 체이닝 없이 결제 흐름을 작성할 수 있습니다.
+- 🔄 **자동 미확정 구매 처리** — 앱 충돌 등으로 확정되지 않은 구매를 초기화 시점에 자동으로 수집합니다. `GetPendingList()`로 한 번에 처리하세요.
+- ⏱️ **내장 타임아웃** — 초기화 단계별 10초, 구매 60초 타임아웃이 내장되어 있어 스토어 무응답 상황에서도 앱이 멈추지 않습니다.
+- 🍎 **iOS 복원 지원**
+
+## 바로가기
+
+- [시작하기](/getting-started)
+- [API 레퍼런스](/api/initialize)
+- [GitHub](https://github.com/achieveonepark/breeze-iap)

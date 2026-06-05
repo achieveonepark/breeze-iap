@@ -1,0 +1,95 @@
+# PurchaseAsync
+
+지정한 상품 ID로 구매를 시작하고 스토어 응답이 올 때까지 대기합니다.
+
+## 시그니처
+
+```csharp
+public static async Task<PurchaseResult> PurchaseAsync(string productId)
+```
+
+## 파라미터
+
+| 파라미터 | 타입 | 설명 |
+|---|---|---|
+| `productId` | `string` | 구매할 상품 ID. `InitializeAsync`에 전달한 값, App Store Connect / Google Play Console에 등록된 ID와 정확히 일치해야 합니다. |
+
+## 반환값
+
+[`PurchaseResult`](types.md#purchaseresult) — `IsSuccess`로 성공 여부를 확인하세요.
+
+## 동작 방식
+
+- `InitializeAsync`가 호출되지 않은 상태에서 호출하면 즉시 오류 `PurchaseResult`를 반환합니다.
+- 스토어에 `PurchaseProduct(productId)`를 호출한 뒤 응답을 기다립니다.
+- **60초 타임아웃** — 스토어가 응답하지 않으면 타임아웃 오류 결과를 반환합니다.
+- 구매 성공 시 `PurchaseResult.Order`에 Unity IAP v5 `PendingOrder`가 담겨 반환됩니다. [`Confirm`](confirm.md)을 호출하기 전까지 구매는 **Pending 상태**를 유지합니다.
+
+## 예시
+
+### 기본 구매
+
+```csharp
+var result = await BreezeIAP.PurchaseAsync("gold_100");
+
+if (result.IsSuccess)
+{
+    GiveGold(100);
+    BreezeIAP.Confirm(result);
+}
+else
+{
+    Debug.LogWarning($"구매 실패: {result.ErrorMessage}");
+}
+```
+
+### 결과 타입별 처리
+
+```csharp
+var result = await BreezeIAP.PurchaseAsync("no_ads");
+
+switch (result.Type)
+{
+    case PurchaseType.Purchase:
+        // 정상 구매
+        ApplyNoAds();
+        BreezeIAP.Confirm(result);
+        break;
+
+    case PurchaseType.Deferred:
+        // Ask to Buy 등 외부 승인 대기 중 (예: 자녀 보호 설정)
+        ShowDeferredMessage();
+        break;
+
+    case PurchaseType.Error:
+        ShowErrorMessage(result.ErrorMessage);
+        break;
+}
+```
+
+### 서버 영수증 검증
+
+```csharp
+var result = await BreezeIAP.PurchaseAsync("gold_100");
+
+if (result.IsSuccess)
+{
+    bool verified = await VerifyWithServer(result.Receipt, result.TransactionId);
+    if (verified)
+    {
+        GiveGold(100);
+        BreezeIAP.Confirm(result);
+    }
+}
+```
+
+## 주의사항
+
+- 동시에 여러 `PurchaseAsync`를 호출하지 마세요. 하나의 구매가 완료된 후 다음 구매를 시작하세요.
+- **반드시 `Confirm`을 호출하세요.** 호출하지 않으면 다음 실행 시 `GetPendingList()`에 해당 구매가 다시 나타납니다.
+
+## 관련 항목
+
+- [`PurchaseResult`](types.md#purchaseresult)
+- [`PurchaseType`](types.md#purchasetype)
+- [`Confirm`](confirm.md)

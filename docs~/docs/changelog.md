@@ -1,0 +1,50 @@
+---
+sidebar_position: 9
+sidebar_label: Change Log
+---
+
+# Changelog
+
+## 3.0.0 — 2026-06-04
+
+### Breaking Changes
+
+- **Migrated to the Unity IAP v5 store API.** Requires `com.unity.purchasing` **5.3.0+**.
+- The legacy `IStoreController` / `IExtensionProvider` / `IStoreListener` model was replaced with `UnityIAPServices.StoreController()` and its event-based API (`OnPurchasePending`, `OnPurchaseConfirmed`, `OnProductsFetched`, `OnPurchasesFetched`, …).
+- Initialization now runs `Connect()` → `FetchProducts(List<ProductDefinition>)` → `FetchPurchases()` instead of `ConfigurationBuilder` + `UnityPurchasing.Initialize`.
+- Purchases are now confirmed against an **order**: `Confirm(Product)` is removed in favor of `Confirm(PendingOrder)`. `Confirm(PurchaseResult)` is unchanged.
+- Removed the internal `InitializeResult` type.
+
+### Added
+
+- `PurchaseResult.Order` (`PendingOrder`), plus convenience `Receipt` and `TransactionId` accessors sourced from `Order.Info`.
+- `PurchaseType.Deferred` for purchases awaiting external approval (e.g. Ask to Buy).
+- Non-generic `Task.Timeout` overload to support awaiting `StoreController.Connect()`.
+
+### Notes
+
+- The high-level API (`InitializeAsync`, `PurchaseAsync`, `Confirm(PurchaseResult)`, `GetPendingList`, `Restore`) is source-compatible with 2.0.0.
+
+---
+
+## 2.0.0 — 2026-05-25
+
+### Breaking Changes
+
+- **Unity IAP 5.0.0+ required.** v4 and below are no longer supported.
+- Removed `OnInitializeFailed(InitializationFailureReason)` overload (no-message variant removed in IAP v5).
+- Removed `OnPurchaseFailed(Product, PurchaseFailureReason)` overload (replaced by `PurchaseFailureDescription` in IAP v5).
+
+### Bug Fixes
+
+- Fixed `NullReferenceException` caused by `initializeCompletionSource` never being initialized before `UnityPurchasing.Initialize` was called.
+- Fixed inverted `_isInitialized` guard in `GetPendingList` and `PurchaseAsync` — both methods were blocking when initialized and allowing calls when not.
+- Fixed missing `return` in `PurchaseAsync` after an early-exit error result.
+- Removed dead code in the `List<InitializeDto>` overload (a dummy product was added after `ToArray()` was called, so it had no effect).
+
+---
+
+## 1.0.0 — 2024-09-17
+
+- Initial release.
+- Async/await wrapper for Unity IAP with pending-purchase queue, timeout handling, and iOS restore support.
