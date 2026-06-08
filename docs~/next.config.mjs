@@ -3,4 +3,4 @@ import { achNextConfig } from 'ach-fumadocs-theme/next';
 
 const withMDX = createMDX();
 
-export default withMDX(achNextConfig({ repo: 'breeze-iap' }));
+export default withMDX(achNextConfig({ repo: 'breeze-iap', basePath: '/BreezeIAP' }));

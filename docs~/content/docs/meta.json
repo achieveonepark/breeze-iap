@@ -1,8 +1,9 @@
 {
+  "title": "Breeze IAP",
   "pages": [
     "index",
+    "getting-started",
     "api",
-    "changelog",
-    "getting-started"
+    "changelog"
   ]
 }

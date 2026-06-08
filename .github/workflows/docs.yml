@@ -7,6 +7,7 @@ on:
     paths:
       - ".github/workflows/docs.yml"
       - "docs~/**"
+      - "site/**"
   workflow_dispatch:
 
 permissions:
@@ -40,8 +41,13 @@ jobs:
         working-directory: docs~
         run: npm run build
 
-      - name: Disable Jekyll
-        run: touch docs~/out/.nojekyll
+      - name: Prepare deployment structure
+        run: |
+          mkdir -p deploy/BreezeIAP
+          cp -r docs~/out/. deploy/BreezeIAP/
+          cp site/index.html deploy/index.html
+          echo "somiri.dev" > deploy/CNAME
+          touch deploy/.nojekyll
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
@@ -51,7 +57,7 @@ jobs:
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4
         with:
-          path: docs~/out
+          path: deploy
 
   deploy:
     environment:
