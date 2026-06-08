@@ -1,0 +1,11 @@
+{
+  "pages": [
+    "confirm",
+    "initialize",
+    "pending",
+    "purchase",
+    "restore",
+    "types"
+  ],
+  "title": "API"
+}
