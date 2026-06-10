@@ -1,0 +1,189 @@
+---
+title: Getting Started
+description: Installing and basic setup for Breeze IAP
+---
+
+## Requirements
+
+| Item | Version |
+|---|---|
+| Unity | 2022.3 or later |
+| Unity In-App Purchasing | **5.3.0 or later** |
+
+## Installation
+
+### Unity Package Manager (Git URL)
+
+1. Open **Window → Package Manager**.
+2. Click the **+** button in the top left → **Add package from git URL…**.
+3. Enter the URL below and click **Add**.
+
+```
+https://github.com/achieveonepark/breeze-iap.git
+```
+
+The `com.unity.purchasing 5.3.0` dependency is installed automatically by Unity Package Manager.
+
+---
+
+## Basic setup
+
+### 1. Define the product list
+
+Write the product IDs and types you registered in App Store Connect / Google Play Console as an `InitializeDto` array.
+
+```csharp
+var products = new[]
+{
+    new InitializeDto { ProductId = "gold_100",  ProductType = ProductType.Consumable },
+    new InitializeDto { ProductId = "gold_500",  ProductType = ProductType.Consumable },
+    new InitializeDto { ProductId = "no_ads",    ProductType = ProductType.NonConsumable },
+    new InitializeDto { ProductId = "vip_month", ProductType = ProductType.Subscription },
+};
+```
+
+`ProductType` is in the `UnityEngine.Purchasing` namespace.
+
+### 2. Initialize
+
+Call `InitializeAsync` once early in the app's lifetime. Typically this is done in the first `MonoBehaviour.Start` that runs when a scene loads.
+
+```csharp
+private async void Start()
+{
+    await BreezeIAP.InitializeAsync(products, isDebug: true);
+}
+```
+
+Passing `isDebug: true` prints detailed logs to the Unity console. Omit it or set it to `false` for release builds.
+
+<Callout type="info">
+**Initialize only once** — calling `InitializeAsync` again while already initialized is silently ignored.
+</Callout>
+
+### 3. Handle pending purchases
+
+Right after initialization, always call `GetPendingList()`. If a purchase completed in a previous session but the app closed before `Confirm` was called, that purchase is collected here.
+
+```csharp
+var pending = BreezeIAP.GetPendingList();
+if (pending != null)
+{
+    foreach (var item in pending)
+    {
+        GrantItem(item.Product.definition.id);  // grant the item
+        BreezeIAP.Confirm(item);                // confirm the purchase
+    }
+}
+```
+
+`GetPendingList()` returns `null` if called before initialization.
+
+### 4. Purchase
+
+```csharp
+var result = await BreezeIAP.PurchaseAsync("gold_100");
+
+if (result.IsSuccess)
+{
+    GrantItem(result.Product.definition.id);
+    BreezeIAP.Confirm(result);
+}
+else
+{
+    Debug.LogWarning($"Purchase failed: {result.ErrorMessage}");
+}
+```
+
+<Callout type="warn">
+**Always call Confirm** — if you don't call `Confirm` after granting the item, the purchase will reappear in `GetPendingList()` on the next run.
+</Callout>
+
+---
+
+## Full example
+
+```csharp
+using UnityEngine;
+using UnityEngine.Purchasing;
+using Achieve.BreezeIAP;
+
+public class ShopManager : MonoBehaviour
+{
+    private async void Start()
+    {
+        var products = new[]
+        {
+            new InitializeDto { ProductId = "gold_100", ProductType = ProductType.Consumable },
+            new InitializeDto { ProductId = "no_ads",   ProductType = ProductType.NonConsumable },
+        };
+
+        await BreezeIAP.InitializeAsync(products);
+
+        // Recover unconfirmed purchases from a previous session
+        var pending = BreezeIAP.GetPendingList();
+        if (pending != null)
+        {
+            foreach (var item in pending)
+            {
+                Grant(item.Product.definition.id);
+                BreezeIAP.Confirm(item);
+            }
+        }
+    }
+
+    public async void OnBuyGoldClicked()
+    {
+        var result = await BreezeIAP.PurchaseAsync("gold_100");
+
+        if (result.IsSuccess)
+        {
+            Grant(result.Product.definition.id);
+            BreezeIAP.Confirm(result);
+        }
+        else
+        {
+            ShowErrorPopup(result.ErrorMessage);
+        }
+    }
+
+    // iOS restore button (required by App Store policy when non-consumable products exist)
+    public void OnRestoreClicked()
+    {
+        BreezeIAP.Restore();
+    }
+
+    private void Grant(string productId)
+    {
+        // Grant the item based on the product ID
+    }
+
+    private void ShowErrorPopup(string message)
+    {
+        // Show an error UI
+    }
+}
+```
+
+---
+
+## Error handling
+
+`PurchaseAsync` never throws on failure; it always returns a `PurchaseResult`. When `IsSuccess` is `false`, `ErrorMessage` contains the reason.
+
+| Situation | IsSuccess | ErrorMessage |
+|---|---|---|
+| Purchase completed | `true` | `""` |
+| Called before initialization | `false` | `"Initialization failed"` |
+| 60-second timeout | `false` | `"Purchase timed out"` |
+| Store purchase failure | `false` | Store error message |
+
+If a timeout occurs during initialization, `InitializeAsync` returns but the internal state remains uninitialized. Subsequent `PurchaseAsync` calls return an error result immediately.
+
+---
+
+## Next steps
+
+- [API Reference — InitializeAsync](./api/initialize)
+- [API Reference — PurchaseAsync](./api/purchase)
+- [Type Definitions](./api/types)

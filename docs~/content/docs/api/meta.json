@@ -1,11 +1,4 @@
 {
-  "title": "API 레퍼런스",
-  "pages": [
-    "initialize",
-    "purchase",
-    "confirm",
-    "restore",
-    "pending",
-    "types"
-  ]
+  "title": "API",
+  "pages": ["initialize", "purchase", "confirm", "restore", "pending", "types"]
 }

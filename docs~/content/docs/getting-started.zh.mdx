@@ -1,0 +1,189 @@
+---
+title: 快速开始
+description: Breeze IAP 的安装与基本配置指南
+---
+
+## 要求
+
+| 项目 | 版本 |
+|---|---|
+| Unity | 2022.3 及以上 |
+| Unity In-App Purchasing | **5.3.0 及以上** |
+
+## 安装
+
+### Unity Package Manager (Git URL)
+
+1. 打开 **Window → Package Manager**。
+2. 点击左上角的 **+** 按钮 → **Add package from git URL…**。
+3. 输入下面的 URL 并点击 **Add**。
+
+```
+https://github.com/achieveonepark/breeze-iap.git
+```
+
+`com.unity.purchasing 5.3.0` 依赖会由 Unity Package Manager 自动安装。
+
+---
+
+## 基本配置
+
+### 1. 定义商品列表
+
+把你在 App Store Connect / Google Play Console 注册的商品 ID 和类型，写成 `InitializeDto` 数组。
+
+```csharp
+var products = new[]
+{
+    new InitializeDto { ProductId = "gold_100",  ProductType = ProductType.Consumable },
+    new InitializeDto { ProductId = "gold_500",  ProductType = ProductType.Consumable },
+    new InitializeDto { ProductId = "no_ads",    ProductType = ProductType.NonConsumable },
+    new InitializeDto { ProductId = "vip_month", ProductType = ProductType.Subscription },
+};
+```
+
+`ProductType` 位于 `UnityEngine.Purchasing` 命名空间。
+
+### 2. 初始化
+
+在应用生命周期早期调用一次 `InitializeAsync`。通常在场景加载时最先运行的 `MonoBehaviour.Start` 中调用。
+
+```csharp
+private async void Start()
+{
+    await BreezeIAP.InitializeAsync(products, isDebug: true);
+}
+```
+
+传入 `isDebug: true` 会在 Unity 控制台输出详细日志。发布构建时请省略或设为 `false`。
+
+<Callout type="info">
+**只初始化一次** — 在已初始化的状态下再次调用 `InitializeAsync` 会被静默忽略。
+</Callout>
+
+### 3. 处理未确认购买
+
+初始化后请务必调用 `GetPendingList()`。如果上一次会话中购买已完成，但在调用 `Confirm` 之前应用就关闭了，该购买会出现在这里。
+
+```csharp
+var pending = BreezeIAP.GetPendingList();
+if (pending != null)
+{
+    foreach (var item in pending)
+    {
+        GrantItem(item.Product.definition.id);  // 发放道具
+        BreezeIAP.Confirm(item);                // 确认购买
+    }
+}
+```
+
+`GetPendingList()` 在初始化之前调用会返回 `null`。
+
+### 4. 购买
+
+```csharp
+var result = await BreezeIAP.PurchaseAsync("gold_100");
+
+if (result.IsSuccess)
+{
+    GrantItem(result.Product.definition.id);
+    BreezeIAP.Confirm(result);
+}
+else
+{
+    Debug.LogWarning($"购买失败: {result.ErrorMessage}");
+}
+```
+
+<Callout type="warn">
+**务必调用 Confirm** — 发放道具后若不调用 `Confirm`，该购买会在下次运行时再次出现在 `GetPendingList()` 中。
+</Callout>
+
+---
+
+## 完整示例
+
+```csharp
+using UnityEngine;
+using UnityEngine.Purchasing;
+using Achieve.BreezeIAP;
+
+public class ShopManager : MonoBehaviour
+{
+    private async void Start()
+    {
+        var products = new[]
+        {
+            new InitializeDto { ProductId = "gold_100", ProductType = ProductType.Consumable },
+            new InitializeDto { ProductId = "no_ads",   ProductType = ProductType.NonConsumable },
+        };
+
+        await BreezeIAP.InitializeAsync(products);
+
+        // 恢复上一次会话的未确认购买
+        var pending = BreezeIAP.GetPendingList();
+        if (pending != null)
+        {
+            foreach (var item in pending)
+            {
+                Grant(item.Product.definition.id);
+                BreezeIAP.Confirm(item);
+            }
+        }
+    }
+
+    public async void OnBuyGoldClicked()
+    {
+        var result = await BreezeIAP.PurchaseAsync("gold_100");
+
+        if (result.IsSuccess)
+        {
+            Grant(result.Product.definition.id);
+            BreezeIAP.Confirm(result);
+        }
+        else
+        {
+            ShowErrorPopup(result.ErrorMessage);
+        }
+    }
+
+    // iOS 恢复按钮（当存在非消耗型商品时，App Store 政策要求必须提供）
+    public void OnRestoreClicked()
+    {
+        BreezeIAP.Restore();
+    }
+
+    private void Grant(string productId)
+    {
+        // 根据商品 ID 发放道具
+    }
+
+    private void ShowErrorPopup(string message)
+    {
+        // 显示错误提示 UI
+    }
+}
+```
+
+---
+
+## 错误处理
+
+`PurchaseAsync` 失败时不会抛出异常，始终返回 `PurchaseResult`。当 `IsSuccess` 为 `false` 时，`ErrorMessage` 包含失败原因。
+
+| 情况 | IsSuccess | ErrorMessage |
+|---|---|---|
+| 购买完成 | `true` | `""` |
+| 初始化前调用 | `false` | `"初始化失败"` |
+| 60 秒超时 | `false` | `"支付超时"` |
+| 商店购买失败 | `false` | 商店错误信息 |
+
+如果在初始化期间发生超时，`InitializeAsync` 会返回，但内部状态仍为未初始化。之后调用 `PurchaseAsync` 会立即返回错误结果。
+
+---
+
+## 后续步骤
+
+- [API 参考 — InitializeAsync](./api/initialize)
+- [API 参考 — PurchaseAsync](./api/purchase)
+- [类型定义](./api/types)

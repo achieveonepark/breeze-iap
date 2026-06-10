@@ -1,0 +1,20 @@
+---
+title: 概要
+description: Unity IAP v5.3.0+ ベースの async/await 課金ラッパー
+---
+
+**Unity IAP を async/await で。**
+Unity IAP v5.3.0+ ベースの軽量な課金ラッパー。コールバックなしで、1 行の `await` で初期化・購入を処理します。
+
+## 特徴
+
+- ⚡ **シンプルな async/await API** — `InitializeAsync` 一回、`PurchaseAsync` 一回。`IStoreListener` の実装やコールバックチェーンなしで課金フローを記述できます。
+- 🔄 **未確定購入の自動処理** — アプリのクラッシュなどで確定されなかった購入を、初期化時に自動的に収集します。`GetPendingList()` で一括処理できます。
+- ⏱️ **組み込みタイムアウト** — 初期化の各ステップに 10 秒、購入に 60 秒のタイムアウトが組み込まれており、ストアが無応答でもアプリが固まりません。
+- 🍎 **iOS の復元に対応**
+
+## クイックリンク
+
+- [はじめに](./getting-started)
+- [API リファレンス](./api/initialize)
+- [GitHub](https://github.com/achieveonepark/breeze-iap)

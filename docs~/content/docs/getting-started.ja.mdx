@@ -1,0 +1,189 @@
+---
+title: はじめに
+description: Breeze IAP のインストールと基本設定ガイド
+---
+
+## 要件
+
+| 項目 | バージョン |
+|---|---|
+| Unity | 2022.3 以降 |
+| Unity In-App Purchasing | **5.3.0 以降** |
+
+## インストール
+
+### Unity Package Manager (Git URL)
+
+1. **Window → Package Manager** を開きます。
+2. 左上の **+** ボタン → **Add package from git URL…** をクリックします。
+3. 以下の URL を入力して **Add** を押します。
+
+```
+https://github.com/achieveonepark/breeze-iap.git
+```
+
+`com.unity.purchasing 5.3.0` の依存関係は Unity Package Manager が自動的にインストールします。
+
+---
+
+## 基本設定
+
+### 1. 商品リストの定義
+
+App Store Connect / Google Play Console に登録した商品 ID とタイプを `InitializeDto` の配列として記述します。
+
+```csharp
+var products = new[]
+{
+    new InitializeDto { ProductId = "gold_100",  ProductType = ProductType.Consumable },
+    new InitializeDto { ProductId = "gold_500",  ProductType = ProductType.Consumable },
+    new InitializeDto { ProductId = "no_ads",    ProductType = ProductType.NonConsumable },
+    new InitializeDto { ProductId = "vip_month", ProductType = ProductType.Subscription },
+};
+```
+
+`ProductType` は `UnityEngine.Purchasing` 名前空間にあります。
+
+### 2. 初期化
+
+アプリ起動の早い段階で一度だけ `InitializeAsync` を呼び出します。通常はシーン入場時に最初に実行される `MonoBehaviour.Start` で呼び出します。
+
+```csharp
+private async void Start()
+{
+    await BreezeIAP.InitializeAsync(products, isDebug: true);
+}
+```
+
+`isDebug: true` を渡すと Unity コンソールに詳細ログが出力されます。リリースビルドでは省略するか `false` に設定してください。
+
+<Callout type="info">
+**初期化は一度だけ** — すでに初期化された状態で `InitializeAsync` を再度呼び出すと、静かに無視されます。
+</Callout>
+
+### 3. 未確定購入の処理
+
+初期化直後に必ず `GetPendingList()` を呼び出します。前のセッションで購入は完了したが `Confirm` が呼ばれる前にアプリが終了した場合、その購入がここに含まれています。
+
+```csharp
+var pending = BreezeIAP.GetPendingList();
+if (pending != null)
+{
+    foreach (var item in pending)
+    {
+        GrantItem(item.Product.definition.id);  // アイテムを付与
+        BreezeIAP.Confirm(item);                // 購入を確定
+    }
+}
+```
+
+`GetPendingList()` は初期化前に呼び出すと `null` を返します。
+
+### 4. 購入
+
+```csharp
+var result = await BreezeIAP.PurchaseAsync("gold_100");
+
+if (result.IsSuccess)
+{
+    GrantItem(result.Product.definition.id);
+    BreezeIAP.Confirm(result);
+}
+else
+{
+    Debug.LogWarning($"購入失敗: {result.ErrorMessage}");
+}
+```
+
+<Callout type="warn">
+**必ず Confirm を呼び出す** — アイテム付与後に `Confirm` を呼ばないと、その購入は次回実行時に `GetPendingList()` に再び現れます。
+</Callout>
+
+---
+
+## 完全な例
+
+```csharp
+using UnityEngine;
+using UnityEngine.Purchasing;
+using Achieve.BreezeIAP;
+
+public class ShopManager : MonoBehaviour
+{
+    private async void Start()
+    {
+        var products = new[]
+        {
+            new InitializeDto { ProductId = "gold_100", ProductType = ProductType.Consumable },
+            new InitializeDto { ProductId = "no_ads",   ProductType = ProductType.NonConsumable },
+        };
+
+        await BreezeIAP.InitializeAsync(products);
+
+        // 前のセッションの未確定購入を復旧
+        var pending = BreezeIAP.GetPendingList();
+        if (pending != null)
+        {
+            foreach (var item in pending)
+            {
+                Grant(item.Product.definition.id);
+                BreezeIAP.Confirm(item);
+            }
+        }
+    }
+
+    public async void OnBuyGoldClicked()
+    {
+        var result = await BreezeIAP.PurchaseAsync("gold_100");
+
+        if (result.IsSuccess)
+        {
+            Grant(result.Product.definition.id);
+            BreezeIAP.Confirm(result);
+        }
+        else
+        {
+            ShowErrorPopup(result.ErrorMessage);
+        }
+    }
+
+    // iOS 復元ボタン（非消耗型商品がある場合は App Store ポリシー上必須）
+    public void OnRestoreClicked()
+    {
+        BreezeIAP.Restore();
+    }
+
+    private void Grant(string productId)
+    {
+        // 商品 ID に応じてアイテムを付与
+    }
+
+    private void ShowErrorPopup(string message)
+    {
+        // エラー案内 UI を表示
+    }
+}
+```
+
+---
+
+## エラー処理
+
+`PurchaseAsync` は失敗しても例外を投げず、常に `PurchaseResult` を返します。`IsSuccess` が `false` の場合、`ErrorMessage` に失敗理由が含まれます。
+
+| 状況 | IsSuccess | ErrorMessage |
+|---|---|---|
+| 購入完了 | `true` | `""` |
+| 初期化前に呼び出し | `false` | `"初期化失敗"` |
+| 60 秒タイムアウト | `false` | `"決済タイムアウト"` |
+| ストア購入失敗 | `false` | ストアのエラーメッセージ |
+
+初期化中にタイムアウトが発生すると、`InitializeAsync` は返りますが内部状態は未初期化のまま残ります。その後の `PurchaseAsync` 呼び出しは即座にエラー結果を返します。
+
+---
+
+## 次のステップ
+
+- [API リファレンス — InitializeAsync](./api/initialize)
+- [API リファレンス — PurchaseAsync](./api/purchase)
+- [型定義](./api/types)

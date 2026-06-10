@@ -1,0 +1,20 @@
+---
+title: 简介
+description: 基于 Unity IAP v5.3.0+ 的 async/await 内购封装
+---
+
+**用 async/await 来写 Unity IAP。**
+基于 Unity IAP v5.3.0+ 的轻量内购封装。无需回调，用一行 `await` 处理初始化与购买。
+
+## 特性
+
+- ⚡ **简单的 async/await API** — 一次 `InitializeAsync`，一次 `PurchaseAsync`。无需实现 `IStoreListener` 或链式回调即可编写购买流程。
+- 🔄 **自动处理未确认购买** — 因应用崩溃等原因未确认的购买，会在初始化时自动收集。用 `GetPendingList()` 一次性处理。
+- ⏱️ **内置超时** — 初始化每个步骤 10 秒、购买 60 秒的超时已内置，即使商店无响应应用也不会卡死。
+- 🍎 **支持 iOS 恢复**
+
+## 快速链接
+
+- [快速开始](./getting-started)
+- [API 参考](./api/initialize)
+- [GitHub](https://github.com/achieveonepark/breeze-iap)
