@@ -1,0 +1,6 @@
+[
+  { "text": "はじめに", "link": "/getting-started" },
+  { "text": "API", "link": "/api/initialize" },
+  { "text": "変更履歴", "link": "/changelog" },
+  { "text": "GitHub", "link": "https://github.com/achieveonepark/breeze-iap" }
+]

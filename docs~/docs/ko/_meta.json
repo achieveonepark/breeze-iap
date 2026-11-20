@@ -1,0 +1,6 @@
+[
+  { "type": "file", "name": "index", "label": "소개" },
+  { "type": "file", "name": "getting-started", "label": "시작하기" },
+  { "type": "dir", "name": "api", "label": "API" },
+  { "type": "file", "name": "changelog", "label": "변경 내역" }
+]

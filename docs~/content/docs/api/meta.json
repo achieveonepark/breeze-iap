@@ -1,4 +1,0 @@
-{
-  "title": "API",
-  "pages": ["initialize", "purchase", "confirm", "restore", "pending", "types"]
-}

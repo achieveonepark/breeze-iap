@@ -1,0 +1,6 @@
+[
+  { "type": "file", "name": "index", "label": "概要" },
+  { "type": "file", "name": "getting-started", "label": "はじめに" },
+  { "type": "dir", "name": "api", "label": "API" },
+  { "type": "file", "name": "changelog", "label": "変更履歴" }
+]

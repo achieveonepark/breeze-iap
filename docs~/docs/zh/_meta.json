@@ -1,0 +1,6 @@
+[
+  { "type": "file", "name": "index", "label": "简介" },
+  { "type": "file", "name": "getting-started", "label": "快速开始" },
+  { "type": "dir", "name": "api", "label": "API" },
+  { "type": "file", "name": "changelog", "label": "更新日志" }
+]

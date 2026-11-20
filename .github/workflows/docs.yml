@@ -1,4 +1,4 @@
-name: Deploy Docs (Fumadocs)
+name: Deploy Docs (Rspress)
 
 on:
   push:
@@ -43,8 +43,8 @@ jobs:
 
       - name: Prepare deployment structure
         run: |
-          mkdir -p deploy/BreezeIAP
-          cp -r docs~/out/. deploy/BreezeIAP/
+          mkdir -p deploy/breeze-iap
+          cp -r docs~/out/. deploy/breeze-iap/
           cp site/index.html deploy/index.html
           echo "somiri.dev" > deploy/CNAME
           touch deploy/.nojekyll

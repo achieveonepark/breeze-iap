@@ -1,0 +1,6 @@
+[
+  { "text": "Getting Started", "link": "/getting-started" },
+  { "text": "API", "link": "/api/initialize" },
+  { "text": "Changelog", "link": "/changelog" },
+  { "text": "GitHub", "link": "https://github.com/achieveonepark/breeze-iap" }
+]
