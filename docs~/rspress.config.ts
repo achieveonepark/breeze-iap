@@ -11,7 +11,8 @@ export default defineConfig({
   base: '/breeze-iap/',
   siteOrigin: 'https://docs.somiri.dev',
   outDir: 'out',
-  lang: 'ko',
+  lang: 'ko-KR',
+  route: { localeRedirect: 'never' },
   locales: [
     {
       lang: 'ko',
